@@ -12,7 +12,6 @@ import typing as tp
 logging.basicConfig(level=logging.DEBUG)
 
 # ToDo: убрать логи
-# ToDo: получение наиболее частого жанра - так сделаем предпочтения
 
 
 class IncorrectInputException(Exception):
@@ -71,7 +70,6 @@ class Logic:
 
     def _show_books_menu(self, is_chosen: bool | None = None):
         """Выводит меню книг."""
-        logging.debug(f'Settings: {self._settings}')
         getting_params = {"is_read": None, "is_chosen": True if is_chosen else None}
         filter_param = None
 
@@ -80,12 +78,11 @@ class Logic:
                 getting_params["is_read"] = True
             elif self._settings.filter_by_status == self.only_unread:
                 getting_params["is_read"] = False
-        logging.debug(f"Params: {getting_params}")
         books = self._repo.get_books(**getting_params)
 
         books_menu = BooksMenu(None,
                                None, self.name_lbl_mapping.get(self._settings.filter_by_status))
-        logging.debug(books_menu)
+
         if is_chosen:  # Если меню для Избранного, то нужно убрать пункт "Новая книга"
             books_menu.name = ConsoleManager.chosen
             books_menu.filter_by_status_id = 2
@@ -111,7 +108,6 @@ class Logic:
                 num = i + 1 + count
                 books_menu.set_item(num, books[i].name, {lambda id_=books[i].id: self._on_book_chosen(id_)})
 
-            logging.debug(books_menu.menu)
         if is_chosen:
             self._last_menu_type = self.CHOSEN
         else:
@@ -162,7 +158,6 @@ class Logic:
     def _on_filter_type_changed(self, filter_type: str, filter_menu: StatusFilterMenu):
         filter_menu.current_filter_type = filter_type
         self._settings.filter_by_status = self.lbl_name_mapping.get(filter_type)
-        logging.debug(f'CHANGED SETTING: {self._settings}. FILTER: {filter_type}')
 
     def _on_book_chosen(self, book_id: int):
         """Обрабатывает выбор книги в меню книг."""
@@ -180,7 +175,6 @@ class Logic:
             menu.chosen = schema.is_chosen
             menu.is_changed = False
             self._book_creating_menu = menu
-            logging.debug(schema.is_chosen, schema.is_read)
         self._view.show_menu(menu)
 
     def _on_delete_book_chosen(self):
@@ -204,10 +198,8 @@ class Logic:
             author = self._repo.get_author(author_name)
             genre = self._repo.get_genre(genre_name)
             if not author:
-                logging.critical(f"THERE IS NO AUTHOR: {author}. Menu: {self._book_creating_menu}")
                 raise IncorrectInputException(f"Автора {author_name} не сущеcтвует.")
             if not genre:
-                logging.critical(f"THERE IS NO GENRE: {genre}. Menu: {self._book_creating_menu}")
                 raise IncorrectInputException(f"Жанра {genre_name} не существует.")
 
             schema = BookSchema(name=self._book_creating_menu.name, description=self._book_creating_menu.book_description,
@@ -216,13 +208,10 @@ class Logic:
                                 is_chosen=self._book_creating_menu.chosen)
             if type_ == self.UPDATE:
                 schema.id = self._book_creating_menu.id
-            logging.debug(schema)
             if type_ == self.ADD:
                 self._repo.add_books([schema])
             elif type_ == self.UPDATE:
                 self._repo.update_book(schema)
-            else:
-                logging.critical(f"UNKNOWN TYPE: {type_}")
             self._book_creating_menu = None
             self._view.show_text(ConsoleManager.book_is_saved)
             self._choose_books_menu()
@@ -290,9 +279,7 @@ class Logic:
             self._book_creating_menu.chosen = False
         elif item.name == ConsoleManager.choose:
             self._book_creating_menu.chosen = True
-        else:
-            logging.critical(f"INCORRECT CHOSEN VARIANT: {item.name}")
-        logging.debug(f'Set new CHOSEN status: {self._book_creating_menu.chosen}')
+
 
     def _on_change_status_chosen(self):
         item = self._book_creating_menu.get_item(self._book_creating_menu.mark_as_read)
@@ -300,9 +287,6 @@ class Logic:
             self._book_creating_menu.status = False
         elif item.name == ConsoleManager.mark_as_read:
             self._book_creating_menu.status = True
-        else:
-            logging.critical(f"INCORRECT STATUS VARIANT: {item.name}")
-        logging.debug(f'Set new READ status: {self._book_creating_menu.status}')
 
     def _on_add_author_chosen(self):
         if self._choosing_menu:
@@ -370,7 +354,6 @@ class Logic:
     def _check_fields(self):
         """Проверяет ввод данных в форму для книги. Вызывает исключение IncorrectInputException при ошибках."""
         if not self._book_creating_menu:
-            logging.critical(f"There is no book creating menu!!!. Book creating menu: {self._book_creating_menu}")
             raise IncorrectInputException("Unknown Error. Try to rerun the application.")
 
         if not self._book_creating_menu.genre:

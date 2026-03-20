@@ -305,9 +305,6 @@ class BooksMenu(Menu):
     def add_callback_create_new_book(self, callback: tp.Callable) -> int:
         return self.add_callback(self.create_new_book, callback)
 
-    def add_callback_sort_setting_chosen(self, callback: tp.Callable) -> int:
-        return self.add_callback(self.sort_books, callback)
-
     def add_callback_filter_by_status_chosen(self, callback: tp.Callable) -> int:
         return self.add_callback(self.filter_by_status_id, callback)
 
