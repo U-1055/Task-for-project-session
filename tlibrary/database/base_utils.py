@@ -3,6 +3,7 @@ from sqlalchemy.engine import create_engine
 from sqlalchemy.orm.session import sessionmaker
 
 import enum
+from pathlib import Path
 
 from tlibrary.database.models import Base, Genre
 
@@ -15,7 +16,11 @@ class DataConst(enum.Enum):
     fantasy = 'Фэнтези'
     historical = 'История'
 
+    max_name_length = 150
+    max_description_length = 2000
+
     default_db_path = 'sqlite:///tlibrary/database/database'
+    default_db_pure_path = Path('tlibrary', 'database', 'database')
 
 
 def init_db(path: str) -> sessionmaker:
@@ -37,6 +42,7 @@ def launch_db(path: str) -> sessionmaker:
     """Запускает базу и возвращает sessionmaker."""
     engine = create_engine(path)
     session_maker = sessionmaker(bind=engine)
+    engine.connect()
 
     return session_maker
 

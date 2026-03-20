@@ -1,4 +1,3 @@
-"""Консольное приложение "Т-библиотека" """
 
 import typing as tp
 from dataclasses import dataclass
@@ -13,9 +12,12 @@ class ConsoleManager:
     # Названия меню
     main_menu = 'Главное меню'
     books_menu = 'Мои книги'
+    new_book = 'Новая книга'
+    author_menu = 'Авторы'
+    genre_menu = 'Жанры'
 
     separator = '-------------------------------------------------------'
-    menu_padding = '\n\n\n\n\n'
+    menu_padding = '\n\n\n'
 
     # Пункты меню
 
@@ -27,12 +29,59 @@ class ConsoleManager:
     to_main_menu = 'В Главное меню'
     sort_books = 'Сортировать книги'
 
+    delete_book = 'Удалить книгу'
+    save_and_return = 'Сохранить и вернуться'
+    cancel_and_return = 'Отменить и вернуться'
+    edit_name = 'Изменить название'
+    edit_description = 'Изменить описание'
+    edit_author = 'Изменить автора'
+    edit_genre = 'Изменить жанр'
+    edit_year = 'Изменить год издания'
+    choose = 'Добавить в Избранное'
+    cancel_choose = 'Убрать из Избранного'
+    mark_as_read = 'Пометить прочитанной'
+    mark_as_unread = 'Пометить непрочитанной'
+
+    return_to_book = 'Вернуться к редактированию'
+    add_genre = 'Добавить жанр'
+    add_author = 'Добавить автора'
+
     # Описания меню
 
-    choose_book = 'Выберите книгу'
+    choose_book = 'Выберите книгу или добавьте новую'
+    choose_author = 'Выберите автора или добавьте нового'
+    choose_genre = 'Выберите жанр или добавьте новый'
 
     # Прочие надписи
+    sort = 'Сортировка'
+    filtration_by_genre = 'Жанр'
+    filtration_by_status = 'Статус'
+    book_is_saved = 'Книга успешно сохранена'
+    enter_new_book_name = "Введите новое название книги (не более 150 символов)"
+    enter_new_book_description = 'Введите новое описание книги (не более 2000)'
+    enter_new_book_year = 'Введите год издания'
+    enter_new_author = 'Введите нового автора'
+    enter_new_genre = 'Введите новый жанр'
+    author_already_exists = 'Такой автор уже существует'
+    genre_already_exists = 'Такой жанр уже существует'
+
+    confirm_delete_book = 'Вы уверены, что хотите удалить книгу? ([Y] - ДА, любая другая клавиша - НЕТ): '
     confirm_exit = 'Вы уверены, что хотите выйти? ([Y] - ДА, любая другая клавиша - НЕТ): '
+    confirm_cancel = 'Вы уверены, что хотите отменить изменения? ([Y] - ДА, любая другая клавиша - НЕТ):'
+    genre = 'Жанр'
+    author = 'Автор'
+    status = 'Статус'
+    year = 'Год издания'
+    is_chosen = 'В Избранном'
+    is_not_chosen = 'Нет в Избранном'
+    description = 'Описание'
+    is_read = 'Прочитана'
+    is_not_read = 'Не прочитана'
+    sort_by_author = 'По автору'
+    sort_by_name = 'По имени'
+    sort_by_genre = 'По жанру'
+    sort_by_year = 'По году'
+    no_sort = 'Нет'
 
     def __init__(self):
         self._current_menu: 'Menu' | None = None
@@ -62,8 +111,11 @@ class ConsoleManager:
             print(self.separator)
 
         self._current_menu = menu
-        for item_ in menu.menu:
+        for item_ in (sorted(list(menu.menu.keys()))):  # Выводим в порядке возрастания (ВСЕ КЛЮЧИ - целые числа)
             print(f'{item_}. {menu.menu[item_].name}')
+            if item_ in self._current_menu.separators:
+                print(self._current_menu.separators[item_])
+
         print(self.separator)
         self._get_current_menu_data()
 
@@ -86,11 +138,34 @@ class Menu:
 
     def __init__(self, name: str, description: str | None = None, menu_data: dict[int, 'MenuItem'] = None):
         self._menu = menu_data if menu_data else {}
+        self._separators: dict[int, 'Separator'] = {}  # Разделители участков меню
         self.name = name
         self._description = description
 
-    def set_item(self, num: int, name: str, callbacks: list[tp.Callable]):
+    def set_item(self, num: int, name: str, callbacks: set[tp.Callable]):
         self._menu[num] = MenuItem(num, name, callbacks)
+
+    def delete_item(self, num: int):
+        if num in self._menu:
+            self._menu.pop(num)
+
+    def get_item(self, num: int) -> 'MenuItem':
+        return self._menu.get(num)
+
+    def set_separator(self, num: int, text: str, line_char: str = '-'):
+        """
+        Добавляет разделитель после пункта меню под номером num.
+
+        :param num: Номер пункта меню, после которого будет добавлен разделитель.
+        :param text: Текст разделителя.
+        :param line_char: Символ линии разделителя (Если "-", будет "-----" и т.д.).
+
+        """
+        self._separators[num] = Separator(text, line_char)
+
+    def count(self) -> int:
+        """Возвращает число пунктов меню."""
+        return len(self._menu)
 
     def add_callback(self, num: int, callback: tp.Callable) -> int:
         """
@@ -101,7 +176,7 @@ class Menu:
 
         """
         if num in self._menu:
-            self._menu[num].callbacks.append(callback)
+            self._menu[num].callbacks.add(callback)
             return len(self._menu) - 1
 
     def delete_callback(self, num: int, callback_id: int):
@@ -111,6 +186,10 @@ class Menu:
     @property
     def menu(self) -> dict[int, 'MenuItem']:
         return self._menu
+
+    @property
+    def separators(self) -> dict[int, 'Separator']:
+        return self._separators
 
     @property
     def description(self) -> str:
@@ -126,7 +205,7 @@ class MenuItem:
 
     num: int
     name: str
-    callbacks: list[tp.Callable[[], tp.Any]]
+    callbacks: set[tp.Callable[[], tp.Any]]
 
 
 class MainMenu(Menu):
@@ -137,10 +216,10 @@ class MainMenu(Menu):
     my_books, chosen, search_book, exit_ = range(1, 5)
 
     _menu_data = {
-        my_books: MenuItem(my_books, ConsoleManager.my_books, []),
-        chosen: MenuItem(chosen, ConsoleManager.chosen, []),
-        search_book: MenuItem(search_book, ConsoleManager.search_book, []),
-        exit_: MenuItem(exit_, ConsoleManager.exit_, [])
+        my_books: MenuItem(my_books, ConsoleManager.my_books, set()),
+        chosen: MenuItem(chosen, ConsoleManager.chosen, set()),
+        search_book: MenuItem(search_book, ConsoleManager.search_book, set()),
+        exit_: MenuItem(exit_, ConsoleManager.exit_, set())
 
     }
 
@@ -167,14 +246,55 @@ class BooksMenu(Menu):
 
     to_main_menu, create_new_book, sort_books = range(1, 4)
 
-    _menu_data = {
-        to_main_menu: MenuItem(to_main_menu, ConsoleManager.to_main_menu, []),
-        create_new_book: MenuItem(create_new_book, ConsoleManager.create_new_book, []),
-        sort_books: MenuItem(sort_books, ConsoleManager.sort_books, [])
-    }
+    def __init__(self, sort_type: str | None = None, filter_by_genre: str | None = None, filter_by_status: str | None = None):
+        self._sort_type, self._filter_by_genre, self._filter_by_status = sort_type, filter_by_genre, filter_by_status
+        self._menu_data = {
+            self.to_main_menu: MenuItem(self.to_main_menu, ConsoleManager.to_main_menu, set()),
+            self.create_new_book: MenuItem(self.create_new_book, ConsoleManager.create_new_book, set()),
+            self.sort_books: MenuItem(self.sort_books, ConsoleManager.sort_books, set())
+        }
+        if not self._sort_type:
+            self._sort_type = ConsoleManager.no_sort
+        super().__init__(ConsoleManager.books_menu, None, self._menu_data)
+        self._form_description()
 
-    def __init__(self):
-        super().__init__(ConsoleManager.books_menu, ConsoleManager.choose_book, self._menu_data)
+    def _form_description(self):
+        self.description = ConsoleManager.choose_book
+        if self.sort_type:
+            self.description = f'{ConsoleManager.choose_book}\n{ConsoleManager.sort}: {self.sort_type}'
+
+        if self._filter_by_status:
+            self.description = (f'{self.description}\n'
+                                f'{ConsoleManager.filtration_by_status}: {self._filter_by_status}')
+        if self._filter_by_genre:
+            self.description = (f'{self.description}\n'
+                                f'{ConsoleManager.filtration_by_genre}: {self._filter_by_genre}\n')
+
+    @property
+    def sort_type(self) -> str:
+        return self._sort_type
+
+    @sort_type.setter
+    def sort_type(self, sort_type: str):
+        self._sort_type = sort_type
+        self._form_description()
+
+    @property
+    def filter_by_genre(self) -> str:
+        return self._filter_by_genre
+
+    @filter_by_genre.setter
+    def filter_by_genre(self, genre: str):
+        self._filter_by_genre = genre
+
+    @property
+    def filter_by_status(self) -> str:
+        return self._filter_by_genre
+
+    @filter_by_status.setter
+    def filter_by_status(self, status: str):
+        self._filter_by_status = status
+
 
     def add_callback_to_main_menu_chosen(self, callback: tp.Callable) -> int:
         return self.add_callback(self.to_main_menu, callback)
@@ -186,6 +306,211 @@ class BooksMenu(Menu):
         return self.add_callback(self.sort_books, callback)
 
 
+class BookCreatingMenu(Menu):
+    """
+    Меню создания книги.
+
+    :param is_creating_type: Имеет ли меню тип "Меню для создания"? Если да, то поле удаления книги не
+                             отображается и привязать коллбэк к нему нельзя.
+
+    """
+
+    _genre: str
+    _book_description: str
+    _author: str
+    _year: int | None
+    _chosen: bool
+    _status: bool
+
+    (edit_name, edit_description, edit_author, edit_genre, edit_year, choose,
+     mark_as_read, save_and_return, cancel_and_return, delete_book) = range(1, 11)
+    cancel_choose, mark_as_unread = 6, 7
+
+    def __init__(self, id_: int | None = None, is_creating_type: bool = False):
+        self._menu_data = {
+            self.edit_name: MenuItem(self.edit_name, ConsoleManager.edit_name, set()),
+            self.edit_description: MenuItem(self.edit_description, ConsoleManager.edit_description, set()),
+            self.edit_author: MenuItem(self.edit_author, ConsoleManager.edit_author, set()),
+            self.edit_genre: MenuItem(self.edit_genre, ConsoleManager.edit_genre, set()),
+            self.edit_year: MenuItem(self.edit_year, ConsoleManager.edit_year, set()),
+            self.choose: MenuItem(self.choose, ConsoleManager.choose, set()),
+            self.mark_as_read: MenuItem(self.mark_as_read, ConsoleManager.mark_as_read, set()),
+            self.save_and_return: MenuItem(self.save_and_return, ConsoleManager.save_and_return, set()),
+            self.cancel_and_return: MenuItem(self.cancel_and_return, ConsoleManager.cancel_and_return, set()),
+
+    }
+        if not is_creating_type:
+            self._menu_data.update({self.delete_book: MenuItem(self.delete_book, ConsoleManager.delete_book, set())})
+        self.id = id_
+        self.is_creating_type = is_creating_type
+        self._author, self._genre, self._book_description, self._year, self._status, self._chosen = '', '', '', None, False, False
+        super().__init__(ConsoleManager.new_book, menu_data=self._menu_data)
+        self._form_description()
+        self.is_changed = False  # Есть ли изменения
+
+    @staticmethod
+    def prepare_book_description(description: str, line_length: int = 150) -> str:
+        """
+        Переносит по строкам текст описания книги.
+
+        :param line_length: Длина строки.
+        :param description: Описание.
+
+        """
+        book_description = list(description)
+        wrapped_description = []
+        for i in range(len(book_description)):
+            wrapped_description.append(book_description[i])
+            if i and i % line_length == 0:
+                wrapped_description.append('\n')
+
+        return ''.join(wrapped_description)
+
+    def _form_description(self):
+        """Формирует описание для меню."""
+        self.description = (f"{ConsoleManager.author}: {self.author}\n{ConsoleManager.genre}: {self.genre}\n"
+                            f"{ConsoleManager.description}:{'\n' if self.book_description else ''}"
+                            f"{self.prepare_book_description(self.book_description)}\n"
+                            f"{ConsoleManager.year}: {self.year if self.year else ''}\n"
+                            f"{ConsoleManager.is_read if self.status else ConsoleManager.is_not_read}\n"
+                            f"{ConsoleManager.is_chosen if self.chosen else ConsoleManager.is_not_chosen}")
+        self.is_changed = True  # Описание изменяется при изменении параметров
+
+    @property
+    def chosen(self) -> bool:
+        return self._chosen
+
+    @chosen.setter
+    def chosen(self, chosen: bool):  # Выбор нужного пункта меню в зависимости от того, находится ли книга в Избранном
+        if chosen:
+            callbacks = self._menu_data[self.choose].callbacks
+            self.set_item(self.cancel_choose, ConsoleManager.cancel_choose, callbacks)
+        else:
+            callbacks = self._menu_data[self.cancel_choose].callbacks
+            self.set_item(self.choose, ConsoleManager.choose, callbacks)
+        self._chosen = chosen
+        self._form_description()
+
+    @property
+    def status(self) -> bool:
+        return self._status
+
+    @status.setter
+    def status(self, status: bool):
+        if status:
+            callbacks = self._menu_data[self.mark_as_read].callbacks
+            self.set_item(self.mark_as_unread, ConsoleManager.mark_as_unread, callbacks)
+        else:
+            callbacks = self._menu_data[self.mark_as_unread].callbacks
+            self.set_item(self.mark_as_read, ConsoleManager.mark_as_read, callbacks)
+        self._status = status
+        self._form_description()
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, name: str):
+        self._name = name
+        self._form_description()
+
+    @property
+    def year(self) -> int | None:
+        return self._year
+
+    @year.setter
+    def year(self, year: int):
+        self._year = year
+        self._form_description()
+
+    @property
+    def book_description(self) -> str:
+        return self._book_description
+
+    @book_description.setter
+    def book_description(self, book_description: str):
+        self._book_description = book_description
+        self._form_description()
+
+    @property
+    def author(self) -> str:
+        return self._author
+
+    @author.setter
+    def author(self, author: str):
+        self._author = author
+        self._form_description()
+
+    @property
+    def genre(self) -> str:
+        return self._genre
+
+    @genre.setter
+    def genre(self, genre: str):
+        self._genre = genre
+        self._form_description()
+
+    def add_callback_edit_name_chosen(self, callback: tp.Callable) -> int:
+        return self.add_callback(self.edit_name, callback)
+
+    def add_callback_edit_description(self, callback: tp.Callable) -> int:
+        return self.add_callback(self.edit_description, callback)
+
+    def add_callback_edit_author_chosen(self, callback: tp.Callable) -> int:
+        return self.add_callback(self.edit_author, callback)
+
+    def add_callback_edit_genre_chosen(self, callback: tp.Callable) -> int:
+        return self.add_callback(self.edit_genre, callback)
+
+    def add_callback_edit_year_chosen(self, callback: tp.Callable) -> int:
+        return self.add_callback(self.edit_year, callback)
+
+    def add_callback_change_status_chosen(self, callback: tp.Callable) -> int:
+        return self.add_callback(self.mark_as_read, callback)
+
+    def add_callback_change_chosen_chosen(self, callback: tp.Callable) -> int:
+        return self.add_callback(self.choose, callback)
+
+    def add_callback_save_and_return_chosen(self, callback: tp.Callable) -> int:
+        return self.add_callback(self.save_and_return, callback)
+
+    def add_callback_cancel_and_return_chosen(self, callback: tp.Callable) -> int:
+        return self.add_callback(self.cancel_and_return, callback)
+
+    def add_callback_delete_book_chosen(self, callback: tp.Callable) -> int:
+        if self.is_creating_type:
+            return 0
+        return self.add_callback(self.delete_book, callback)
+
+
+class ChooseMenu(Menu):
+
+    return_to_book, add_object = range(1, 3)
+
+    def __init__(self, name: str, description: str):
+        self._menu_data = {self.return_to_book: MenuItem(self.return_to_book, ConsoleManager.return_to_book, set())}
+        super().__init__(name, description, self._menu_data)
+
+    def add_callback_return_to_book_chosen(self, callback: tp.Callable) -> int:
+        return self.add_callback(self.return_to_book, callback)
+
+    def add_callback_add_object_chosen(self, callback: tp.Callable) -> int:
+        return self.add_callback(self.add_object, callback)
+
+
+class Separator:
+    """Разделитель для меню."""
+
+    def __init__(self, text: str, line_char: str = '-'):
+        self.text = text
+        self.line_char = line_char
+
+    def __str__(self):
+        sep_line = ''.join([self.line_char for _ in range(18)])
+        return f'{sep_line} {self.text} {sep_line}'
+
+
 if __name__ == '__main__':
 
     console = ConsoleManager()
@@ -193,4 +518,9 @@ if __name__ == '__main__':
     new_menu = Menu('Второе меню')
     menu.set_item(1, 'Во Второе меню', [lambda: console.show_menu(new_menu)])
     new_menu.set_item(1, "В Главное меню", [lambda: console.show_menu(menu)])
+    [new_menu.set_item(i, f'Пункт {i}', set()) for i in range(2, 22)]
+    new_menu.set_separator(5, 'Разделитель')
+    new_menu.set_separator(10, 'Разделитель')
+    new_menu.set_separator(15, 'Разделитель')
     console.show_menu(menu)
+

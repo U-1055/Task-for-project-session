@@ -14,6 +14,7 @@ class Book(Base):
     author_id: Mapped[int] = mapped_column(ForeignKey('author.id'))
     genre_id: Mapped[int] = mapped_column(ForeignKey('genre.id'))
 
+    # Могут быть две книги с одним именем, но разными авторами\жанрами
     name: Mapped[str] = mapped_column(String(150))
     description: Mapped[str] = mapped_column(String(2000), nullable=True)
     year: Mapped[int] = mapped_column()
@@ -26,14 +27,14 @@ class Book(Base):
 
 class Genre(Base):
     __tablename__ = 'genre'
-
-    name: Mapped[str] = mapped_column(String(150))
+    # Двух авторов\жанров с одинаковыми именами не может быть
+    name: Mapped[str] = mapped_column(String(150), unique=True)
     books: Mapped[list[Book]] = relationship('Book', back_populates='genre')
 
 
 class Author(Base):
     __tablename__ = 'author'
 
-    name: Mapped[str] = mapped_column(String(150))
+    name: Mapped[str] = mapped_column(String(150), unique=True)
     books: Mapped[list[Book]] = relationship('Book', back_populates='author')
 
