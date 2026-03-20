@@ -54,8 +54,12 @@ class ConsoleManager:
     choose_author = 'Выберите автора или добавьте нового'
     choose_genre = 'Выберите жанр или добавьте новый'
     search = 'Поиск книг по ключевым словам в названии, имени автора и описании'
+    preferences_desc = ('Здесь находятся книги тех жанров и авторов,\nкоторые имеют больше всего книг в вашей библиотеке'
+                        '\n(Если у вас мало книг, рекомендации могут быть не очень точны)')
 
     # Прочие надписи
+    preferences = 'Рекомендованные книги'
+    books = 'Книги'
     title_book_search = 'Поиск'
     enter_search = 'Введите строку для поиска'
     sort = 'Сортировка'
@@ -168,6 +172,10 @@ class Menu:
         """
         self._separators[num] = Separator(text, line_char)
 
+    def clear_separators(self):
+        """Удаляет все разделители."""
+        self._separators = {}
+
     def count(self) -> int:
         """Возвращает число пунктов меню."""
         return len(self._menu)
@@ -218,12 +226,13 @@ class MainMenu(Menu):
 
     # Номера элементов
 
-    my_books, chosen, search_book, exit_ = range(1, 5)
+    my_books, chosen, search_book, preferences, exit_ = range(1, 6)
 
     _menu_data = {
         my_books: MenuItem(my_books, ConsoleManager.my_books, set()),
         chosen: MenuItem(chosen, ConsoleManager.chosen, set()),
         search_book: MenuItem(search_book, ConsoleManager.search_books, set()),
+        preferences: MenuItem(preferences, ConsoleManager.preferences, set()),
         exit_: MenuItem(exit_, ConsoleManager.exit_, set())
 
     }
@@ -234,14 +243,17 @@ class MainMenu(Menu):
     def add_callback_my_books_chosen(self, callback: tp.Callable) -> int:
         return self.add_callback(self.my_books, callback)
 
-    def add_callback_chosen_chosen_callback(self, callback: tp.Callable) -> int:
+    def add_callback_chosen_chosen(self, callback: tp.Callable) -> int:
         return self.add_callback(self.chosen, callback)
 
-    def add_callback_search_book_chosen_callback(self, callback: tp.Callable) -> int:
+    def add_callback_search_book_chosen(self, callback: tp.Callable) -> int:
         return self.add_callback(self.search_book, callback)
 
-    def add_callback_exit_chosen_callback(self, callback: tp.Callable) -> int:
+    def add_callback_exit_chosen(self, callback: tp.Callable) -> int:
         return self.add_callback(self.exit_, callback)
+
+    def add_callback_preferences_chosen(self, callback: tp.Callable) -> int:
+        return self.add_callback(self.preferences, callback)
 
 
 class BooksMenu(Menu):
@@ -262,6 +274,7 @@ class BooksMenu(Menu):
         if not self._sort_type:
             self._sort_type = ConsoleManager.no_sort
         super().__init__(ConsoleManager.books_menu, None, self._menu_data)
+        self.set_separator(self.sort_books, ConsoleManager.books)
         self._form_description()
 
     def _form_description(self):
@@ -353,7 +366,6 @@ class BookCreatingMenu(Menu):
             self.mark_as_read: MenuItem(self.mark_as_read, ConsoleManager.mark_as_read, set()),
             self.save_and_return: MenuItem(self.save_and_return, ConsoleManager.save_and_return, set()),
             self.cancel_and_return: MenuItem(self.cancel_and_return, ConsoleManager.cancel_and_return, set()),
-
     }
         if not is_creating_type:
             self._menu_data.update({self.delete_book: MenuItem(self.delete_book, ConsoleManager.delete_book, set())})
@@ -543,10 +555,56 @@ class SearchMenu(BooksMenu):
         self.delete_item(self.sort_books)  # Удаляем пункты сортировки и добавления книги
         self.delete_item(self.create_new_book)
         self.set_item(self.search_books, ConsoleManager.search_books, set())  # Устанавливаем пункт для поиска
+
+        self.clear_separators()
+        self.set_separator(self.search_books, ConsoleManager.books)
         self.searching_line: str | None = None
 
     def add_callback_search_books_chosen(self, callback: tp.Callable) -> int:
         return self.add_callback(self.search_books, callback)
+
+
+class PreferredBooksMenu(BooksMenu):
+    """Меню рекомендаций."""
+
+    def __init__(self, most_preferred_author: str | None = None, most_preferred_genre: str | None = None):
+        self._most_preferred_author, self._most_preferred_genre = most_preferred_author, most_preferred_genre
+        super().__init__()
+        self.delete_item(self.create_new_book)
+        self.delete_item(self.sort_books)
+
+        self.name = ConsoleManager.preferences
+        self.description = ConsoleManager.preferences_desc
+
+        self.clear_separators()
+        self.set_separator(1, ConsoleManager.books)
+        self._form_description()
+
+    def _form_description(self):
+        self.description = f'{self.description}'
+        if self._most_preferred_author and self._most_preferred_genre:
+            self.description = (f'{self.description}\nСамый популярный автор: {self._most_preferred_author}\n'
+                                f'Самый популярный жанр: {self._most_preferred_genre}')
+        else:
+            self.description = f'{self.description}\nКниг пока нет...'
+
+    @property
+    def most_preferred_author(self) -> str:
+        return self._most_preferred_author
+
+    @most_preferred_author.setter
+    def most_preferred_author(self, most_preferred_author: str):
+        self._most_preferred_author = most_preferred_author
+        self._form_description()
+
+    @property
+    def most_preferred_genre(self) -> str:
+        return self._most_preferred_genre
+
+    @most_preferred_genre.setter
+    def most_preferred_genre(self, most_preferred_genre: str):
+        self._most_preferred_genre = most_preferred_genre
+        self._form_description()
 
 
 if __name__ == '__main__':

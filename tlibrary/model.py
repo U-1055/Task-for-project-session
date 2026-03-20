@@ -3,6 +3,8 @@ from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy.sql import select, delete, Select, or_
 from sqlalchemy.exc import IntegrityError
 
+import dataclasses
+from collections import Counter
 import typing as tp
 from dataclasses import asdict
 import logging
@@ -78,7 +80,26 @@ class Repository:
                                           genre=model.genre.name, id=model.id))
         return schemas
 
-    def add_books(self, schemas: tp.Sequence[BookSchema]) -> list[BookSchema]:
+    def get_preferred_books(self) -> 'GetPreferredResponse':
+        """Возвращает книги пользователя, соответствующие наиболее популярным авторам и жанрам среди его книг."""
+
+        with self._session() as session, session.begin():
+            books = self.get_books()
+            if books:
+                authors = Counter([book.author for book in books])
+                genres = Counter([book.genre for book in books])
+
+                most_common_author = authors.most_common(1)[0][0]
+                most_common_genre = genres.most_common(1)[0][0]
+
+                res_books = []
+                for book in books:
+                    if book.genre == most_common_genre or book.author == most_common_author:
+                        res_books.append(book)
+                return GetPreferredResponse(res_books, most_preferred_genre=most_common_genre,
+                                            most_preferred_author=most_common_author)
+
+    def add_books(self, schemas: tp.Sequence[BookSchema]):
         with self._session() as session, session.begin():
             data = []
             for schema in schemas:
@@ -208,12 +229,14 @@ class NotUniqueValueError(BaseRepoException):
     pass
 
 
-if __name__ == '__main__':
-    from tlibrary.database.base_utils import init_db
-    repo = Repository(init_db('sqlite:///database/database'))
-    authors = [AuthorSchema(name) for name in ["Ярослав Гашек", "К.А. Жуков", "Дж. Р.Р Толкин"]]
-    repo.add_authors(authors)
+@dataclasses.dataclass
+class GetPreferredResponse:
+    """Ответ на получение предпочитаемых книг."""
 
-    books = [BookSchema(name=f"Book{i + 2 * i % 2}", description="Описание отсутствует", year=42002,
-                        is_chosen=False, is_read=False, author=i % 3 + 1, genre=i % 3 + 1) for i in range(20)]
-    repo.add_books(books)
+    books: list[BookSchema]
+    most_preferred_author: str
+    most_preferred_genre: str
+
+
+if __name__ == '__main__':
+    pass

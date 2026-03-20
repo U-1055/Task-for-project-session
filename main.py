@@ -15,7 +15,6 @@ except Exception as e:
            f"Exception:\n{e.__class__.__name__}: {e}")
 
 
-# ToDo: протестировать валидацию
 # ToDo: проверить - там launch_db
 
 # ToDo: настройка сортировки + типа ПМИ и тесты

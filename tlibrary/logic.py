@@ -1,6 +1,7 @@
 import dataclasses
 
-from tlibrary.console_manager import ConsoleManager, MainMenu, BooksMenu, BookCreatingMenu, ChooseMenu, SearchMenu
+from tlibrary.console_manager import (ConsoleManager, MainMenu, BooksMenu, BookCreatingMenu, ChooseMenu,
+                                      SearchMenu, PreferredBooksMenu)
 from tlibrary.model import Repository, NotUniqueValueError
 from tlibrary.database.base_utils import DataConst
 from tlibrary.database.schemas import BookSchema, AuthorSchema, GenreSchema
@@ -29,6 +30,7 @@ class Logic:
     CHOSEN = 'CHOSEN'
     COMMON = 'COMMON'
     SEARCH = 'SEARCH'
+    PREFERENCES = 'PREFERENCES'
 
     # Названия полей
 
@@ -107,6 +109,8 @@ class Logic:
             books_menu.sort_books = 2
             books_menu.set_item(books_menu.sort_books, ConsoleManager.sort_books, {self._on_sort_books_chosen})
             books_menu.delete_item(3)
+            books_menu.clear_separators()
+            books_menu.set_separator(books_menu.sort_books, ConsoleManager.books)
 
         books_menu.add_callback_to_main_menu_chosen(self._on_main_menu)
         books_menu.add_callback_sort_books(self._on_sort_books_chosen)
@@ -148,6 +152,21 @@ class Logic:
             menu.add_callback_delete_book_chosen(self._on_delete_book_chosen)
 
         return menu
+
+    def _on_preferences_chosen(self):
+        response = self._repo.get_preferred_books()
+        if response:
+            books_menu = PreferredBooksMenu(response.most_preferred_author, response.most_preferred_genre)
+            count = books_menu.count()
+            for i in range(len(response.books)):
+                num = i + 1 + count
+                books_menu.set_item(num, response.books[i].name, {lambda id_=response.books[i].id: self._on_book_chosen(id_)})
+        else:
+            books_menu = PreferredBooksMenu()
+
+        books_menu.add_callback_to_main_menu_chosen(self._on_main_menu)
+        self._last_menu_type = self.PREFERENCES
+        self._view.show_menu(books_menu)
 
     def _on_book_chosen(self, book_id: int):
         """Обрабатывает выбор книги в меню книг."""
@@ -337,9 +356,10 @@ class Logic:
     def _on_main_menu(self):
         menu = MainMenu()
         menu.add_callback_my_books_chosen(self._show_books_menu)
-        menu.add_callback_chosen_chosen_callback(lambda: self._show_books_menu(True))
-        menu.add_callback_search_book_chosen_callback(self._on_search_books_menu_chosen)
-        menu.add_callback_exit_chosen_callback(self._on_exit_chosen)
+        menu.add_callback_chosen_chosen(lambda: self._show_books_menu(True))
+        menu.add_callback_search_book_chosen(self._on_search_books_menu_chosen)
+        menu.add_callback_exit_chosen(self._on_exit_chosen)
+        menu.add_callback_preferences_chosen(self._on_preferences_chosen)
         self._view.show_menu(menu)
 
     def _on_author_chosen(self, author: str):
@@ -412,6 +432,8 @@ class Logic:
                 self._show_searching_menu()
             else:
                 self._on_search_books_menu_chosen()
+        elif self._last_menu_type == self.PREFERENCES:
+            self._on_preferences_chosen()
 
 
 @dataclasses.dataclass
