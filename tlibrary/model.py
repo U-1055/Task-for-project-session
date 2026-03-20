@@ -15,59 +15,6 @@ from tlibrary.database.schemas import BookSchema, AuthorSchema, GenreSchema, Aux
 logging.basicConfig(level=logging.DEBUG)
 
 
-# ToDo: удалить модель
-class Model:
-    """Класс для операций с файлом настроек (shelve DB)."""
-
-    # Названия полей
-
-    settings = 'settings'
-    sort_type = 'sort_type'  # Тип сортировки
-    filter_type = 'filter_type'
-
-    # Настройки сортировки и фильтрации
-
-    sort_by_author = 'sort_by_author'  # Значения для сортировки
-    sort_by_genre = 'sort_by_genre'
-    sort_by_year = 'sort_by_year'
-    sort_by_name = 'sort_by_name'
-    filter_by_genre = 'filter_by_genre'
-
-    only_read = 'only_read'  # Только прочитанные
-    only_unread = 'only_unread'  # Только непрочитанные
-
-    _struct = {
-        settings: {
-            filter_type: None, sort_type: None
-        }
-    }
-
-    def __init__(self, path: Path):
-        self._path = path
-        self._validate()
-
-    def _validate(self):
-        if not self._path.is_file():
-            with shelve.open(self._path) as storage:
-                storage = self._struct
-
-    def get_settings(self) -> dict:
-        with shelve.open(self._path) as storage:
-            return storage[self.settings]
-
-    def set_sort_type(self, sort_type: str):
-        with shelve.open(self._path) as storage:
-            settings = storage[self.settings]
-            settings[self.sort_type] = sort_type
-            storage[self.settings] = settings
-
-    def set_filter_type(self, filter_type: str):
-        with shelve.open(self._path) as storage:
-            settings = storage[self.settings]
-            settings[self.filter_type] = filter_type
-            storage[self.settings] = settings
-
-
 class Repository:
     """Класс для операций с БД."""
 

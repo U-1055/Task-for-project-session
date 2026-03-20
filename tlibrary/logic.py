@@ -1,7 +1,7 @@
 import dataclasses
 
 from tlibrary.console_manager import ConsoleManager, MainMenu, BooksMenu, BookCreatingMenu, ChooseMenu
-from tlibrary.model import Repository, Model, NotUniqueValueError
+from tlibrary.model import Repository, NotUniqueValueError
 from tlibrary.database.base_utils import DataConst
 from tlibrary.database.schemas import BookSchema, AuthorSchema, GenreSchema
 
@@ -52,9 +52,8 @@ class Logic:
         sort_by_year: ConsoleManager.sort_by_year, sort_by_genre: ConsoleManager.sort_by_genre,
     }
 
-    def __init__(self, console_manager: ConsoleManager, repo: Repository, model: Model):
+    def __init__(self, console_manager: ConsoleManager, repo: Repository):
         self._repo = repo
-        self._model = model
         self._view = console_manager
 
         self._book_creating_menu: BookCreatingMenu | None = None  # Меню редактирования книги
@@ -71,7 +70,7 @@ class Logic:
 
         getting_params = {"order_by_name": False, "order_by_year": False, "order_by_genre": False,
                           "order_by_author": False, "genre_name": None, "author_name": None, "is_read": None,
-                          "is_chosen": is_chosen}
+                          "is_chosen": True if is_chosen else None}
         filter_param = None
 
         if self._settings.sort_type == self.sort_by_name:
@@ -107,6 +106,7 @@ class Logic:
             books_menu.set_item(books_menu.sort_books, ConsoleManager.sort_books, {self._on_sort_books_chosen})
             books_menu.delete_item(3)
 
+        books_menu.add_callback_to_main_menu_chosen(self._on_main_menu)
         books_menu.add_callback_sort_books(self._on_sort_books_chosen)
 
         if not is_chosen:
@@ -115,10 +115,10 @@ class Logic:
         if books:
             count = books_menu.count()
             # Если элементов больше двух, будем учитывать следующий
-            for i in range(len(books) - 1 if len(books) >= 2 else len(books)):
+            for i in range(len(books)):
                 num = i + 1 + count
                 books_menu.set_item(num, books[i].name, {lambda id_=books[i].id: self._on_book_chosen(id_)})
-                if filter_param and len(books) >= 2:
+                if filter_param and i < len(books) - 1:  # Не проверяем, когда остался последний индекс
                     current_book_param = books[i].__dict__.get(filter_param)
                     next_book_param = books[i + 1].__dict__.get(filter_param)
                     # За последним элементом с этим значением ставим разделитель
@@ -196,8 +196,9 @@ class Logic:
             schema = BookSchema(name=self._book_creating_menu.name, description=self._book_creating_menu.book_description,
                                 year=self._book_creating_menu.year, author=author.id, genre=genre.id,
                                 is_read=self._book_creating_menu.status,
-                                is_chosen=self._book_creating_menu.chosen,
-                                id=self._book_creating_menu.id if type_ == self.UPDATE else None)
+                                is_chosen=self._book_creating_menu.chosen)
+            if type_ == self.UPDATE:
+                schema.id = self._book_creating_menu.id
             logging.debug(schema)
             if type_ == self.ADD:
                 self._repo.add_books([schema])

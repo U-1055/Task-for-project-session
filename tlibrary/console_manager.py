@@ -295,7 +295,6 @@ class BooksMenu(Menu):
     def filter_by_status(self, status: str):
         self._filter_by_status = status
 
-
     def add_callback_to_main_menu_chosen(self, callback: tp.Callable) -> int:
         return self.add_callback(self.to_main_menu, callback)
 
