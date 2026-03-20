@@ -1,10 +1,8 @@
 """Модуль для работы с данными."""
 from sqlalchemy.orm.session import sessionmaker
-from sqlalchemy.sql import select, insert, delete, update, Select
+from sqlalchemy.sql import select, delete, Select, or_
 from sqlalchemy.exc import IntegrityError
 
-from pathlib import Path
-import shelve
 import typing as tp
 from dataclasses import asdict
 import logging
@@ -80,7 +78,7 @@ class Repository:
                                           genre=model.genre.name, id=model.id))
         return schemas
 
-    def add_books(self, schemas: tp.Sequence[BookSchema]):
+    def add_books(self, schemas: tp.Sequence[BookSchema]) -> list[BookSchema]:
         with self._session() as session, session.begin():
             data = []
             for schema in schemas:
@@ -92,6 +90,24 @@ class Repository:
                 data.append(models.Book(**dict_))
 
             session.add_all(data)
+
+    def search_books(self, line: str):
+        """Находит книги по вхождению строки в название, имя автора или описание."""
+
+        with self._session() as session, session.begin():
+            result = session.execute(select(models.Book).where(
+                or_(models.Book.name.contains(line),
+                    models.Book.author.has(models.Author.name.contains(line)),
+                    models.Book.description.contains(line)
+                    ))).scalars().all()
+            schemas = []
+            for model in result:  # Переделка в датаклассы
+                model: models.Book
+                schemas.append(BookSchema(name=model.name, description=model.description, year=model.year,
+                                          is_chosen=model.is_chosen, is_read=model.is_read, author=model.author.name,
+                                          genre=model.genre.name, id=model.id))
+
+            return schemas
 
     def get_author(self, name: str) -> AuthorSchema | None:
         query = select(models.Author).where(models.Author.name == name)

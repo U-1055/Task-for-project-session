@@ -5,11 +5,13 @@ from dataclasses import dataclass
 
 class ConsoleManager:
     """Класс для управления выводом на консоль."""
+
     lbl_enter_menu_item = 'Введите номер пункта меню: '
     lbl_incorrect_int = 'Введите корректное целое число'
     lbl_no_menu_num = 'В меню нет такого пункта'
 
     # Названия меню
+
     main_menu = 'Главное меню'
     books_menu = 'Мои книги'
     new_book = 'Новая книга'
@@ -23,7 +25,7 @@ class ConsoleManager:
 
     my_books = "Мои книги"
     chosen = 'Избранное'
-    search_book = 'Найти книгу'
+    search_books = 'Найти книги'
     exit_ = 'Выйти из приложения'
     create_new_book = 'Новая книга'
     to_main_menu = 'В Главное меню'
@@ -51,8 +53,11 @@ class ConsoleManager:
     choose_book = 'Выберите книгу или добавьте новую'
     choose_author = 'Выберите автора или добавьте нового'
     choose_genre = 'Выберите жанр или добавьте новый'
+    search = 'Поиск книг по ключевым словам в названии, имени автора и описании'
 
     # Прочие надписи
+    title_book_search = 'Поиск'
+    enter_search = 'Введите строку для поиска'
     sort = 'Сортировка'
     filtration_by_genre = 'Жанр'
     filtration_by_status = 'Статус'
@@ -218,7 +223,7 @@ class MainMenu(Menu):
     _menu_data = {
         my_books: MenuItem(my_books, ConsoleManager.my_books, set()),
         chosen: MenuItem(chosen, ConsoleManager.chosen, set()),
-        search_book: MenuItem(search_book, ConsoleManager.search_book, set()),
+        search_book: MenuItem(search_book, ConsoleManager.search_books, set()),
         exit_: MenuItem(exit_, ConsoleManager.exit_, set())
 
     }
@@ -245,6 +250,7 @@ class BooksMenu(Menu):
     # Номера пунктов меню
 
     to_main_menu, create_new_book, sort_books = range(1, 4)
+    actions_names = [ConsoleManager.to_main_menu, ConsoleManager.create_new_book, ConsoleManager.sort_books]
 
     def __init__(self, sort_type: str | None = None, filter_by_genre: str | None = None, filter_by_status: str | None = None):
         self._sort_type, self._filter_by_genre, self._filter_by_status = sort_type, filter_by_genre, filter_by_status
@@ -303,6 +309,17 @@ class BooksMenu(Menu):
 
     def add_callback_sort_books(self, callback: tp.Callable) -> int:
         return self.add_callback(self.sort_books, callback)
+
+    def clear(self):
+        """Очищает меню от книг."""
+        last_item = 3
+        for item in sorted(list(self.menu.keys())):  # Ищем первый элемент, не входящий в действия меню
+            if self.menu[item].name not in self.actions_names:
+                last_item = item - 1
+
+        for item in sorted(list(self.menu.keys())):  # Удаляем все элементы, номер которых больше указанного
+            if item > last_item:
+                self.delete_item(item)
 
 
 class BookCreatingMenu(Menu):
@@ -508,6 +525,28 @@ class Separator:
     def __str__(self):
         sep_line = ''.join([self.line_char for _ in range(18)])
         return f'{sep_line} {self.text} {sep_line}'
+
+
+class SearchMenu(BooksMenu):
+    """
+    Меню для поиска книг.
+
+    :var searching_line: Строка, введённая при поиске.
+    """
+    search_books = 2
+    actions_names = [ConsoleManager.to_main_menu, ConsoleManager.search_books]
+
+    def __init__(self):
+        super().__init__()
+        self.description = ConsoleManager.search
+        self.name = ConsoleManager.title_book_search
+        self.delete_item(self.sort_books)  # Удаляем пункты сортировки и добавления книги
+        self.delete_item(self.create_new_book)
+        self.set_item(self.search_books, ConsoleManager.search_books, set())  # Устанавливаем пункт для поиска
+        self.searching_line: str | None = None
+
+    def add_callback_search_books_chosen(self, callback: tp.Callable) -> int:
+        return self.add_callback(self.search_books, callback)
 
 
 if __name__ == '__main__':

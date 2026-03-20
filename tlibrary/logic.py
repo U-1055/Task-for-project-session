@@ -1,6 +1,6 @@
 import dataclasses
 
-from tlibrary.console_manager import ConsoleManager, MainMenu, BooksMenu, BookCreatingMenu, ChooseMenu
+from tlibrary.console_manager import ConsoleManager, MainMenu, BooksMenu, BookCreatingMenu, ChooseMenu, SearchMenu
 from tlibrary.model import Repository, NotUniqueValueError
 from tlibrary.database.base_utils import DataConst
 from tlibrary.database.schemas import BookSchema, AuthorSchema, GenreSchema
@@ -28,6 +28,7 @@ class Logic:
 
     CHOSEN = 'CHOSEN'
     COMMON = 'COMMON'
+    SEARCH = 'SEARCH'
 
     # Названия полей
 
@@ -58,6 +59,7 @@ class Logic:
 
         self._book_creating_menu: BookCreatingMenu | None = None  # Меню редактирования книги
         self._choosing_menu: ChooseMenu | None = None  # Меню авторов\жанров
+        self._searching_menu: SearchMenu | None = None  # Меню для поиска книг
         self._last_menu_type: str | None = None
 
         # Настройки сортировки
@@ -171,7 +173,7 @@ class Logic:
         if line == 'Y' and self._book_creating_menu and self._book_creating_menu.id:
             self._repo.delete_books([self._book_creating_menu.id])
             self._book_creating_menu = None
-            self._show_books_menu(True if self._last_menu_type == self.CHOSEN else False)
+            self._choose_books_menu()
 
     def _on_create_new_book_chosen(self):
         menu = self._set_book_creating_menu(True)
@@ -208,7 +210,7 @@ class Logic:
                 logging.critical(f"UNKNOWN TYPE: {type_}")
             self._book_creating_menu = None
             self._view.show_text(ConsoleManager.book_is_saved)
-            self._show_books_menu(True if self._last_menu_type == self.CHOSEN else False)
+            self._choose_books_menu()
         except IncorrectInputException as e:
             self._view.show_text(e.message)
 
@@ -217,15 +219,16 @@ class Logic:
             line = self._view.get_data(ConsoleManager.confirm_cancel).strip()
             if line == 'Y':
                 self._book_creating_menu = None
-                self._show_books_menu(True if self._last_menu_type == self.CHOSEN else False)
+                self._choose_books_menu()
         else:
             self._book_creating_menu = None
-            self._show_books_menu(True if self._last_menu_type == self.CHOSEN else False)
+            self._choose_books_menu()
 
     def _on_edit_name_chosen(self):
         if self._book_creating_menu:
             new_name = self._view.get_data(f'{ConsoleManager.enter_new_book_name}: ')
-            self._book_creating_menu.name = new_name.strip()
+            if new_name:
+                self._book_creating_menu.name = new_name.strip()
 
     def _on_edit_description_chosen(self):
         if self._book_creating_menu:
@@ -313,8 +316,18 @@ class Logic:
     def _on_sort_books_chosen(self):
         pass
 
+    def _on_search_books_menu_chosen(self):
+        books_menu = SearchMenu()
+        books_menu.add_callback_search_books_chosen(self._on_search_books_chosen)
+        books_menu.add_callback_to_main_menu_chosen(self._on_main_menu)
+        self._searching_menu = books_menu
+        self._last_menu_type = self.SEARCH
+        self._view.show_menu(self._searching_menu)
+
     def _on_search_books_chosen(self):
-        pass
+        line = self._view.get_data(f'{ConsoleManager.enter_search}: ').strip()
+        if line and self._searching_menu:
+            self._set_searched_to_menu(line)
 
     def _on_exit_chosen(self):
         line = self._view.get_data(ConsoleManager.confirm_exit).strip()
@@ -325,7 +338,7 @@ class Logic:
         menu = MainMenu()
         menu.add_callback_my_books_chosen(self._show_books_menu)
         menu.add_callback_chosen_chosen_callback(lambda: self._show_books_menu(True))
-        menu.add_callback_search_book_chosen_callback(self._on_search_books_chosen)
+        menu.add_callback_search_book_chosen_callback(self._on_search_books_menu_chosen)
         menu.add_callback_exit_chosen_callback(self._on_exit_chosen)
         self._view.show_menu(menu)
 
@@ -368,6 +381,38 @@ class Logic:
 
             self._view.show_menu(self._book_creating_menu)
     
+    def _show_searching_menu(self, clear: bool = False):
+        if self._searching_menu:
+            if clear:
+                self._searching_menu.clear()
+            self._view.show_menu(self._searching_menu)
+
+    def _set_searched_to_menu(self, line: str):
+        """Устанавливает результаты поиска в меню поиска."""
+        self._searching_menu.searching_line = line
+        self._searching_menu.clear()
+        books = self._repo.search_books(line)
+        count = self._searching_menu.count()
+
+        for i in range(len(books)):
+            num = i + 1 + count
+            self._searching_menu.set_item(num, books[i].name, {lambda id_=books[i].id: self._on_book_chosen(id_)})
+        self._view.show_text(f"Найдено {len(books)} книг" if len(books) else "Ничего не найдено :(")
+
+    def _choose_books_menu(self):
+        """Выбирает меню книг, исходя из last_menu_type."""
+        if self._last_menu_type == self.COMMON:
+            self._show_books_menu(False)
+        elif self._last_menu_type == self.CHOSEN:
+            self._show_books_menu(True)
+        elif self._last_menu_type == self.SEARCH:
+            if self._searching_menu:
+                if self._searching_menu.searching_line:
+                    self._set_searched_to_menu(self._searching_menu.searching_line)
+                self._show_searching_menu()
+            else:
+                self._on_search_books_menu_chosen()
+
 
 @dataclasses.dataclass
 class ViewSettings:

@@ -27,7 +27,7 @@ def add_books() -> sessionmaker:
         authors_ids = [model.id for model in get_authors]
 
         chosen_books = [cm.Book(name=f'Book#{i}{i % 2}', genre_id=i + genres_ids[0], author_id=i + authors_ids[0],
-                                year=2025 + i % 2, is_chosen=True, is_read=bool(i % 2))
+                                year=2025 + i % 2, is_chosen=True, is_read=bool(i % 2), description=f'#{i % 2}')
                         for i in range(10)]
         not_chosen_books = [cm.Book(name=f'Book#{i}{i % 2}', genre_id=i - 10 + genres_ids[0],
                                     author_id=i - 10 + authors_ids[0], year=2025 + i % 2, is_chosen=False,
@@ -68,13 +68,14 @@ def repository_add(add_auxiliary) -> Repository:
         [Repository.get_books, {'author_name': 'Author#00'}, [1, 11]],
         [Repository.get_books, {'year': 2025}, [i for i in range(1, 21) if i % 2 != 0]],
         [Repository.get_books, {'year': 2026}, [i for i in range(1, 21) if i % 2 == 0]],
+        [Repository.search_books, {'line': '#1'}, [2, 4, 6, 8, 10, *[i for i in range(11, 21)]]]
     ]
 )
 def test_get(getting_method: tp.Callable[[Repository, tp.Any], list[BaseSchema]],
              getting_params: dict, repository_get: Repository, expected_ids: tp.Sequence[int]):
     result = getting_method(repository_get, **getting_params)
     ids = [schema.id for schema in result]
-    assert tuple(ids) == tuple(expected_ids), repository_get.get_books()
+    assert tuple(ids) == tuple(expected_ids), result
 
 
 @pytest.mark.parametrize(
