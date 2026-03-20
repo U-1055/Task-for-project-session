@@ -22,14 +22,15 @@ class ConsoleManager:
     menu_padding = '\n\n\n'
 
     # Пункты меню
-
+    return_ = 'Вернуться'
     my_books = "Мои книги"
     chosen = 'Избранное'
     search_books = 'Найти книги'
     exit_ = 'Выйти из приложения'
     create_new_book = 'Новая книга'
     to_main_menu = 'В Главное меню'
-    sort_books = 'Сортировать книги'
+    sort_books = 'Настроить сортировку'
+    filter_by_status = 'Фильтр по статусу'
 
     delete_book = 'Удалить книгу'
     save_and_return = 'Сохранить и вернуться'
@@ -56,13 +57,18 @@ class ConsoleManager:
     search = 'Поиск книг по ключевым словам в названии, имени автора и описании'
     preferences_desc = ('Здесь находятся книги тех жанров и авторов,\nкоторые имеют больше всего книг в вашей библиотеке'
                         '\n(Если у вас мало книг, рекомендации могут быть не очень точны)')
+    sort_settings_desc = 'Выберите тип сортировки книг'
+    filter_by_status_desc = 'Настройте фильтрацию по статусу (прочитано/непрочитано/любые)'
 
     # Прочие надписи
+    any_ = 'Любой'
+    only_read = 'Только прочитанные'
+    only_unread = 'Только непрочитанные'
+    sort_settings = 'Настройки сортировки'
     preferences = 'Рекомендованные книги'
     books = 'Книги'
     title_book_search = 'Поиск'
     enter_search = 'Введите строку для поиска'
-    sort = 'Сортировка'
     filtration_by_genre = 'Жанр'
     filtration_by_status = 'Статус'
     book_is_saved = 'Книга успешно сохранена'
@@ -172,6 +178,9 @@ class Menu:
         """
         self._separators[num] = Separator(text, line_char)
 
+    def get_separator(self, num: int) -> 'Separator':
+        return self._separators.get(num)
+
     def clear_separators(self):
         """Удаляет все разделители."""
         self._separators = {}
@@ -261,7 +270,7 @@ class BooksMenu(Menu):
 
     # Номера пунктов меню
 
-    to_main_menu, create_new_book, sort_books = range(1, 4)
+    to_main_menu, create_new_book, filter_by_status_id, sort_settings_id = range(1, 5)
     actions_names = [ConsoleManager.to_main_menu, ConsoleManager.create_new_book, ConsoleManager.sort_books]
 
     def __init__(self, sort_type: str | None = None, filter_by_genre: str | None = None, filter_by_status: str | None = None):
@@ -269,42 +278,18 @@ class BooksMenu(Menu):
         self._menu_data = {
             self.to_main_menu: MenuItem(self.to_main_menu, ConsoleManager.to_main_menu, set()),
             self.create_new_book: MenuItem(self.create_new_book, ConsoleManager.create_new_book, set()),
-            self.sort_books: MenuItem(self.sort_books, ConsoleManager.sort_books, set())
+            self.filter_by_status_id: MenuItem(self.filter_by_status_id, ConsoleManager.filter_by_status, set()),
         }
-        if not self._sort_type:
-            self._sort_type = ConsoleManager.no_sort
         super().__init__(ConsoleManager.books_menu, None, self._menu_data)
-        self.set_separator(self.sort_books, ConsoleManager.books)
+        self.set_separator(self.filter_by_status_id, ConsoleManager.books)
         self._form_description()
 
     def _form_description(self):
         self.description = ConsoleManager.choose_book
-        if self.sort_type:
-            self.description = f'{ConsoleManager.choose_book}\n{ConsoleManager.sort}: {self.sort_type}'
 
         if self._filter_by_status:
             self.description = (f'{self.description}\n'
                                 f'{ConsoleManager.filtration_by_status}: {self._filter_by_status}')
-        if self._filter_by_genre:
-            self.description = (f'{self.description}\n'
-                                f'{ConsoleManager.filtration_by_genre}: {self._filter_by_genre}\n')
-
-    @property
-    def sort_type(self) -> str:
-        return self._sort_type
-
-    @sort_type.setter
-    def sort_type(self, sort_type: str):
-        self._sort_type = sort_type
-        self._form_description()
-
-    @property
-    def filter_by_genre(self) -> str:
-        return self._filter_by_genre
-
-    @filter_by_genre.setter
-    def filter_by_genre(self, genre: str):
-        self._filter_by_genre = genre
 
     @property
     def filter_by_status(self) -> str:
@@ -320,8 +305,11 @@ class BooksMenu(Menu):
     def add_callback_create_new_book(self, callback: tp.Callable) -> int:
         return self.add_callback(self.create_new_book, callback)
 
-    def add_callback_sort_books(self, callback: tp.Callable) -> int:
+    def add_callback_sort_setting_chosen(self, callback: tp.Callable) -> int:
         return self.add_callback(self.sort_books, callback)
+
+    def add_callback_filter_by_status_chosen(self, callback: tp.Callable) -> int:
+        return self.add_callback(self.filter_by_status_id, callback)
 
     def clear(self):
         """Очищает меню от книг."""
@@ -552,7 +540,7 @@ class SearchMenu(BooksMenu):
         super().__init__()
         self.description = ConsoleManager.search
         self.name = ConsoleManager.title_book_search
-        self.delete_item(self.sort_books)  # Удаляем пункты сортировки и добавления книги
+        self.delete_item(self.filter_by_status_id)  # Удаляем пункты фильтрации и добавления книги
         self.delete_item(self.create_new_book)
         self.set_item(self.search_books, ConsoleManager.search_books, set())  # Устанавливаем пункт для поиска
 
@@ -571,7 +559,7 @@ class PreferredBooksMenu(BooksMenu):
         self._most_preferred_author, self._most_preferred_genre = most_preferred_author, most_preferred_genre
         super().__init__()
         self.delete_item(self.create_new_book)
-        self.delete_item(self.sort_books)
+        self.delete_item(self.filter_by_status_id)
 
         self.name = ConsoleManager.preferences
         self.description = ConsoleManager.preferences_desc
@@ -605,6 +593,46 @@ class PreferredBooksMenu(BooksMenu):
     def most_preferred_genre(self, most_preferred_genre: str):
         self._most_preferred_genre = most_preferred_genre
         self._form_description()
+
+
+class StatusFilterMenu(Menu):
+    """Меню фильтрации по статусу."""
+    to_books_menu, only_read, only_unread, any_ = range(1, 5)
+
+    def __init__(self):
+        self._menu_data = {
+            self.to_books_menu: MenuItem(self.to_books_menu, ConsoleManager.return_, set()),
+            self.only_read: MenuItem(self.only_read, ConsoleManager.only_read, set()),
+            self.only_unread: MenuItem(self.only_unread, ConsoleManager.only_unread, set()),
+            self.any_: MenuItem(self.any_, ConsoleManager.any_, set())
+        }
+        self._current_filter_type = ConsoleManager.any_
+        super().__init__(ConsoleManager.filter_by_status, ConsoleManager.sort_settings_desc, self._menu_data)
+        self._form_description()
+
+    def _form_description(self):
+        self.description = f'{ConsoleManager.filter_by_status_desc}\nТекущий фильтр: {self.current_filter_type}'
+
+    @property
+    def current_filter_type(self) -> str:
+        return self._current_filter_type
+
+    @current_filter_type.setter
+    def current_filter_type(self, filter_type: str):
+        self._current_filter_type = filter_type
+        self._form_description()
+
+    def add_callback_to_books_menu_chosen(self, callback: tp.Callable) -> int:
+        return self.add_callback(self.to_books_menu, callback)
+
+    def add_callback_only_read_chosen(self, callback: tp.Callable) -> int:
+        return self.add_callback(self.only_read, callback)
+
+    def add_callback_only_unread_chosen(self, callback: tp.Callable) -> int:
+        return self.add_callback(self.only_unread, callback)
+
+    def add_callback_any_chosen(self, callback: tp.Callable) -> int:
+        return self.add_callback(self.any_, callback)
 
 
 if __name__ == '__main__':

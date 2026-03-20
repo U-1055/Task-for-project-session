@@ -1,7 +1,7 @@
 import dataclasses
 
 from tlibrary.console_manager import (ConsoleManager, MainMenu, BooksMenu, BookCreatingMenu, ChooseMenu,
-                                      SearchMenu, PreferredBooksMenu)
+                                      SearchMenu, PreferredBooksMenu, StatusFilterMenu)
 from tlibrary.model import Repository, NotUniqueValueError
 from tlibrary.database.base_utils import DataConst
 from tlibrary.database.schemas import BookSchema, AuthorSchema, GenreSchema
@@ -39,20 +39,20 @@ class Logic:
 
     # Настройки сортировки и фильтрации
 
-    sort_by_author = 'sort_by_author'  # Значения для сортировки
-    sort_by_genre = 'sort_by_genre'
-    sort_by_year = 'sort_by_year'
-    sort_by_name = 'sort_by_name'
-    filter_by_genre = 'filter_by_genre'
     filter_by_status = 'filter_by_status'
 
     only_read = 'only_read'  # Только прочитанные
     only_unread = 'only_unread'  # Только непрочитанные
+    any_ = 'any'  # Любые
 
     name_lbl_mapping = {
-        only_read: ConsoleManager.is_read, only_unread: ConsoleManager.is_not_read,
-        sort_by_author: ConsoleManager.sort_by_author, sort_by_name: ConsoleManager.sort_by_name,
-        sort_by_year: ConsoleManager.sort_by_year, sort_by_genre: ConsoleManager.sort_by_genre,
+        only_read: ConsoleManager.only_read, only_unread: ConsoleManager.only_unread,
+        any_: ConsoleManager.any_
+    }
+
+    lbl_name_mapping = {
+        ConsoleManager.only_read: only_read, ConsoleManager.only_unread: only_unread,
+        ConsoleManager.any_: any_
     }
 
     def __init__(self, console_manager: ConsoleManager, repo: Repository):
@@ -71,27 +71,10 @@ class Logic:
 
     def _show_books_menu(self, is_chosen: bool | None = None):
         """Выводит меню книг."""
-
-        getting_params = {"order_by_name": False, "order_by_year": False, "order_by_genre": False,
-                          "order_by_author": False, "genre_name": None, "author_name": None, "is_read": None,
-                          "is_chosen": True if is_chosen else None}
+        logging.debug(f'Settings: {self._settings}')
+        getting_params = {"is_read": None, "is_chosen": True if is_chosen else None}
         filter_param = None
 
-        if self._settings.sort_type == self.sort_by_name:
-            getting_params["order_by_name"] = True
-            filter_param = 'name'
-        elif self._settings.sort_type == self.sort_by_year:
-            getting_params["order_by_year"] = True
-            filter_param = 'year'
-        elif self._settings.sort_type == self.sort_by_genre:
-            getting_params["order_by_genre"] = True
-            filter_param = 'genre'
-        elif self._settings.sort_type == self.sort_by_author:
-            getting_params["order_by_author"] = True
-            filter_param = 'author'
-
-        if self._settings.filter_by_genre:
-            getting_params["genre_name"] = self._settings.filter_by_genre
         if self._settings.filter_by_status:
             if self._settings.filter_by_status == self.only_read:
                 getting_params["is_read"] = True
@@ -100,36 +83,34 @@ class Logic:
         logging.debug(f"Params: {getting_params}")
         books = self._repo.get_books(**getting_params)
 
-        books_menu = BooksMenu(self.name_lbl_mapping.get(self._settings.sort_type),
-                               self._settings.filter_by_genre,
-                               self.name_lbl_mapping.get(self._settings.filter_by_status))
+        books_menu = BooksMenu(None,
+                               None, self.name_lbl_mapping.get(self._settings.filter_by_status))
         logging.debug(books_menu)
         if is_chosen:  # Если меню для Избранного, то нужно убрать пункт "Новая книга"
             books_menu.name = ConsoleManager.chosen
-            books_menu.sort_books = 2
-            books_menu.set_item(books_menu.sort_books, ConsoleManager.sort_books, {self._on_sort_books_chosen})
+            books_menu.filter_by_status_id = 2
+            books_menu.set_item(2, ConsoleManager.filter_by_status, {self._on_filter_by_status_chosen})
             books_menu.delete_item(3)
             books_menu.clear_separators()
-            books_menu.set_separator(books_menu.sort_books, ConsoleManager.books)
+            books_menu.set_separator(books_menu.filter_by_status_id, ConsoleManager.books)
 
         books_menu.add_callback_to_main_menu_chosen(self._on_main_menu)
-        books_menu.add_callback_sort_books(self._on_sort_books_chosen)
+        books_menu.add_callback_filter_by_status_chosen(self._on_filter_by_status_chosen)
 
         if not is_chosen:
             books_menu.add_callback_create_new_book(self._on_create_new_book_chosen)
 
+        if self._settings.filter_by_status:
+            books_menu.filter_by_status = self.name_lbl_mapping.get(self._settings.filter_by_status)
+
         if books:
             count = books_menu.count()
+
             # Если элементов больше двух, будем учитывать следующий
             for i in range(len(books)):
                 num = i + 1 + count
                 books_menu.set_item(num, books[i].name, {lambda id_=books[i].id: self._on_book_chosen(id_)})
-                if filter_param and i < len(books) - 1:  # Не проверяем, когда остался последний индекс
-                    current_book_param = books[i].__dict__.get(filter_param)
-                    next_book_param = books[i + 1].__dict__.get(filter_param)
-                    # За последним элементом с этим значением ставим разделитель
-                    if current_book_param and next_book_param and current_book_param != next_book_param:
-                        books_menu.set_separator(num, next_book_param)
+
             logging.debug(books_menu.menu)
         if is_chosen:
             self._last_menu_type = self.CHOSEN
@@ -167,6 +148,21 @@ class Logic:
         books_menu.add_callback_to_main_menu_chosen(self._on_main_menu)
         self._last_menu_type = self.PREFERENCES
         self._view.show_menu(books_menu)
+
+    def _on_filter_by_status_chosen(self):
+        filter_menu = StatusFilterMenu()
+        filter_menu.add_callback_to_books_menu_chosen(self._choose_books_menu)
+        filter_menu.add_callback_any_chosen(lambda: self._on_filter_type_changed(ConsoleManager.any_, filter_menu))
+        filter_menu.add_callback_only_unread_chosen(lambda: self._on_filter_type_changed(ConsoleManager.only_unread, filter_menu))
+        filter_menu.add_callback_only_read_chosen(lambda: self._on_filter_type_changed(ConsoleManager.only_read, filter_menu))
+        current_filter = self.name_lbl_mapping.get(self._settings.filter_by_status)
+        filter_menu.current_filter_type = current_filter if current_filter else ConsoleManager.any_
+        self._view.show_menu(filter_menu)
+
+    def _on_filter_type_changed(self, filter_type: str, filter_menu: StatusFilterMenu):
+        filter_menu.current_filter_type = filter_type
+        self._settings.filter_by_status = self.lbl_name_mapping.get(filter_type)
+        logging.debug(f'CHANGED SETTING: {self._settings}. FILTER: {filter_type}')
 
     def _on_book_chosen(self, book_id: int):
         """Обрабатывает выбор книги в меню книг."""
@@ -332,9 +328,6 @@ class Logic:
                 except NotUniqueValueError as e:
                     self._view.show_text(ConsoleManager.genre_already_exists)
 
-    def _on_sort_books_chosen(self):
-        pass
-
     def _on_search_books_menu_chosen(self):
         books_menu = SearchMenu()
         books_menu.add_callback_search_books_chosen(self._on_search_books_chosen)
@@ -439,6 +432,4 @@ class Logic:
 @dataclasses.dataclass
 class ViewSettings:
     """Настройки отображения книг."""
-    sort_type: str | None = None
-    filter_by_genre: str | None = None
     filter_by_status: str | None = None

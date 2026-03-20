@@ -10,7 +10,7 @@ else:
 try:
     logic = Logic(ConsoleManager(), Repository(session_maker))
 except Exception as e:
-    raise e  # ToDo:  убрать raise
+    raise e  # ToDo: убрать raise
     print(f"Произошла непредвиденная ошибка...( Пожалуйста, перезапустите приложение.\n"
            f"Exception:\n{e.__class__.__name__}: {e}")
 
