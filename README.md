@@ -1,5 +1,5 @@
 # Task-for-project-session
-Отборочное задание на проектную сессию 1-7 апреля 2026 г.
+Отборочное задание на проектную смену 1-7 апреля 2026 г.
 
 # Установка
 Требуется **Python 3.12.3** и зависимости в **requirements.txt** (только для Задания 2).
@@ -47,7 +47,7 @@
 <img width="468" height="329" alt="image" src="https://github.com/user-attachments/assets/fcd54ec0-4168-4de5-ac82-48f104332153" />
 
 
-**Настройка книги**
+**Редактирование книги**
 
 <img width="447" height="481" alt="image" src="https://github.com/user-attachments/assets/5e08d6c2-f63c-407a-b0c6-66a7b46710dc" />
 
@@ -70,5 +70,110 @@
 **Создание новой книги**
 
 <img width="496" height="473" alt="image" src="https://github.com/user-attachments/assets/ec9bbb6f-cd2f-4109-8790-f22f4fcff65e" />
+
+
+# Примеры использования
+**Создание книги**
+
+1. Перейдите в "Мои книги"
+2. Выберите пункт "Новая книга" (введите "2")
+   
+<img width="496" height="473" alt="image" src="https://github.com/user-attachments/assets/ec9bbb6f-cd2f-4109-8790-f22f4fcff65e" />
+
+4. Установите нужные названия, описание, год издания
+5. Выберите автора и жанр из списка существующих (либо добавьте новый)
+
+<img width="460" height="261" alt="image" src="https://github.com/user-attachments/assets/01f2d184-50ab-4bfa-8ba8-0324ba956c5e" />
+<img width="447" height="219" alt="image" src="https://github.com/user-attachments/assets/05807569-869b-4249-b50f-94f713419590" />
+
+6. Получившаяся книга
+   
+<img width="470" height="421" alt="image" src="https://github.com/user-attachments/assets/6ed0653a-9201-496c-bb0f-971b27ed8fe1" />
+
+7. Выберите "Сохранить и вернуться"
+8. Книга добавлена!
+
+<img width="490" height="262" alt="image" src="https://github.com/user-attachments/assets/caafc527-4bad-42dc-95e1-f2f9b32f4332" />
+
+
+**Редактирование книги**
+
+Книги можно редактировать из любого раздела, где есть доступ к ним ("Мои книги", "Избраннное", "Поиск", "Рекомендованные книги")
+
+1. Выберите книгу в списке:
+   
+<img width="453" height="481" alt="image" src="https://github.com/user-attachments/assets/ee450567-c859-48c8-ad1d-133ed238d933" />
+
+2. Вы можете изменить любое из её полей, а также добавить её в Избранное или пометить прочитанной. (А также удалить книгу)
+3. Добавим её в Избранное:
+
+<img width="454" height="478" alt="image" src="https://github.com/user-attachments/assets/b2ed54ab-63ec-4779-8d6c-2e4747f0e9d0" />
+
+4. Нажмите "Сохранить и вернуться"
+5. Перейдите в Главное меню и оттуда в Избранное
+6. Книга отображается в Избранном!
+
+<img width="466" height="240" alt="image" src="https://github.com/user-attachments/assets/b91f988a-3f03-45ce-b39e-a9cf7727b79b" />
+
+7. Из Избранного откроем окно редактирования книги, изменим её статус на "Прочитана" и добавим описание.
+
+<img width="1211" height="537" alt="image" src="https://github.com/user-attachments/assets/27ea68b8-73f7-4d20-b567-dbb8ddcdd6f2" />
+
+8. Вернёмся в "Мои книги" и откроем книгу
+9. Изменения сохраняются!
+
+<img width="1221" height="591" alt="image" src="https://github.com/user-attachments/assets/27b43771-5b3f-4a23-8893-ce7a71fce3fe" />
+
+**Фильтрация книг**
+
+Книги можно фильтровать по статусу "Прочитана"/"Не прочитана" в разделах "Мои книги" и "Избранное"
+
+1. Добавим ещё книг - две книги Толкина и одну - К.А. Жукова.
+
+<img width="462" height="318" alt="image" src="https://github.com/user-attachments/assets/1663a9ad-8ef1-4298-9998-55f361258464" />
+
+2. Выберем "Фильтр по статусу"
+
+<img width="509" height="272" alt="image" src="https://github.com/user-attachments/assets/532d672e-6572-43ec-bb77-8f6cf1e26b89" />
+
+3. Вы можете выбрать - показывать только прочитанные, только непрочитанные или все книги.
+4. Выберем "Только прочитанные" и вернёмся в "Мои книги"
+5. Отображается только "Хоббит..." - только он прочитан!
+
+<img width="466" height="280" alt="image" src="https://github.com/user-attachments/assets/750f785c-1340-4e32-aad4-5ca69938f2f5" />
+
+**Рекомендации**
+
+В разделе "Рекомендованные книги" вы можете увидеть книги наиболее распространённых в вашей библиотеке жанров и авторов.
+
+1. Перейдём в "Рекомендованные книги"
+2. Самый популярный жанр - "Фэнтези"; Самый популярный автор - Толкин (действительно, его книг больше всего в библиотеке).
+
+<img width="587" height="357" alt="image" src="https://github.com/user-attachments/assets/cd1cb363-bcf2-4c33-867e-ee278770da1a" />
+
+
+**Поиск**
+
+В разделе "Найти книги" можно искать книги по ключевым словам в названии, описании или авторе.
+
+1. Выберем "Найти книги"
+
+<img width="563" height="234" alt="image" src="https://github.com/user-attachments/assets/962b536e-332c-4aaa-9c56-be500ab29462" />
+
+2. Введём слово "пространное"
+3. Выводится "Хоббит...", действительно, в его описании есть это слово.
+
+<img width="602" height="240" alt="image" src="https://github.com/user-attachments/assets/528d1719-dbf8-4a86-9253-76849d57db50" />
+
+4. Введём строку "К.А."
+5. Выводится "Инцидент" - "К.А." - это инициалы автора этой книги.
+
+<img width="564" height="246" alt="image" src="https://github.com/user-attachments/assets/1646bb37-24d7-486f-8444-3d7753db7c6b" />
+
+
+
+   
+
+
 
 
